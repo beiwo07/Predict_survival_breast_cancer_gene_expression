@@ -1,34 +1,3 @@
----
-title: Predicting Survival of Breast Cancer Patients Who Received Hormone and/or Radiation
-  Therapy Incoporating High-dimensional Gene Expression Information
-author: "Bei Wang"
-date: "06/02/2022"
-output:
-  md_document:
-    variant: markdown_github
----
-
-# 1. Goal of the predictor
-
-Accurate estimation of prognosis is essential for clinical decision making and care for breast cancer patients. Patients with same clinical characteristics (e.g., tumor stage) can respond to treatments differently and experience different survival outcomes, which might be attributable to complex variation in individual gene expression. Hormone and radiation therapy are common treatments for breast cancer and there are many patients who receive both. Recent studies raised the concern that hormonal therapy may reduce the efficacy of radiation [(Cecchini et al., 2015)](https://www.ncbi.nlm.nih.govpmc/articles/PMC4659580/#:~:text=However%2C%20when%20comparing%20radiation%20alone,outcomes%2C%20including%20survival%20and%20recurrence.), and it is not clear whether accurate estimation of survival can be achieved depending on patient treatment assignments. The **goal** of the current analysis is to create predictors for survival among patients who received only hormone, only radiation, or both hormone and radiation therapy.      
-
-# 2. Study design
-
-The data is from the Molecular Taxonomy of Breast Cancer International Consortium (METABRIC) database and accessed from [Kaggle (clink for link)](https://www.kaggle.com/datasets/raghadalharbi/breast-cancer-gene-expression-profiles-metabric). The prospective data consists of 31 clinical features and 506 genetic attributes collected from almost 2000 breast cancer patients. These patients were followed up and the time (months) to either censoring or death were collected. 
-
-A part of the genetic attributes are numeric z-scores representing the number of standard deviations in mRNA expression from the mean expression in a reference population, which measures whether a gene is increased or decreased relative to tumor-free people or patients of other tumors. The rest of the genetic features are binary indicators of mutation, which is very sparse. The clinical attributes include 31 features such as cancer stage, treatment, tumor size, etc. 
-
-The structure of the data lead me to conduct a survival analysis. I also decided to drop the mutation features in the data for they are too sparse. One of the clinical variable summarized the number of mutations of each patient, so I felt this is a good enough representation of the mutation data.    
-
-# 3. Algorithms
-
-Because I have time-to-event data, the algorithms that I tried are the **Cox proportional hazard regression**, **Cox proportional hazard regression with regularization (lasso, ridge, alpha=0.5)**, and **random survival forest**. I choose the C-index as my loss function for its good interpretability like AUROC. 
-
-For the regularized cox models, I plan to use cross-validation to tune the lambda value and use the lambda value that gives minimum mean cross-validated error. For the random survival forest model, I use the parameters that were suggested by [Pickett and colleagues (2021)](https://bmcmedresmethodol.biomedcentral.com/articles/10.1186/s12874-021-01375-x#Tab1).    
-
-
-```{r, include=FALSE}
-rm(list = ls())
 library(tidyverse)
 library(ggplot2)
 library(naniar)
@@ -40,148 +9,24 @@ library(survminer)
 library(randomForestSRC)
 library(iml)
 library(magrittr)
-#rmarkdown::render("analysis0601.Rmd", output_format = "md_document")
-```
 
-```{r, read data}
-#original dataset dimension
-df<- read.csv(".raw_data/METABRIC_RNA_Mutation 2.csv") 
-dim(df)
-```
-
-# 4.Feature engenieering and exploratory data analysis
-
-## 4.1 Data dimension & key variable distributions 
-
-The orginal dataset contains 1904 observations and 693 features. Among the features, there are 31 clinical variables. There are 331 mRNA level z-scores (numeric) for 331 genes and mutation (binary) for 175 genes. Data on mutation of genes are very sparse, so that I decided to just focus on clinical features and mRNA data. 
-
-My exploration indicates that 801 deaths occurred during the follow up period. The average age of the cohort if 61. Patients in this cohort receive three types of therapies and combinations of them. The data also shows that very few patients have mutation on more than 15 genes. I also found that **missing values** were only partially coded as NA. Some of them are empty cells. 
-
-```{r}
-#binary overall survival status
-table(df$overall_survival)
-#age 
-summary(df$age_at_diagnosis)
-#cancer type 
-table(df$cancer_type_detailed)
-#treatment 
-table(df$chemotherapy)
-table(df$hormone_therapy)
-table(df$radio_therapy)
-table(df$chemotherapy, df$hormone_therapy, df$radio_therapy)
-#number of mutation 
-table(df$mutation_count)
-```
-
-```{r, echo=FALSE, include=FALSE}
-#take a closer look at clinical variables 
-clinical<- df[1:31]
-sapply(clinical, function(x) unique(x))
-```
-
-```{r}
-#missing values ranked; not all are correctly represented
-missing<- data.frame(sapply(df, function(x) sum(is.na(x)))) %>% 
-  arrange(desc(sapply.df..function.x..sum.is.na.x...))  
-head(missing, 10)
-```
-
-# 5. Data pre-processing 
-
-In my data pre-processing, I follow the steps below: 
-
-- Explore missing values and correctly code missing as NAs
-- Manually drop features that will not be useful for this task 
-- Multiple imputation by chained equation
-- Create categorical variables to stratify patients based on treatment 
-
-## 5.1 Explore missing values and replace missing with NAs
-
-```{r}
-#there isn't missing values in the outcome 
-table(is.na(df$overall_survival))
-table(is.na(df$overall_survival_months))
-
-#replace empty cells with NA 
-df<- df %>% 
-  replace_with_na_all(condition= ~.x=="")
-#a subset of clinical variables for viewing purpose
-clinical<- clinical %>% 
-  replace_with_na_all(condition= ~.x=="")
-```
-
-## 5.2 Drop clinical features that will not be useful 
-
-```{r}
-#clinical feature list
-str(clinical)
-```
-
-```{r}
-#drop redundant, not useful, outcome features.. 
-drop<-c("cancer_type", "cohort","patient_id", "er_status_measured_by_ihc", "her2_status_measured_by_snp6","nottingham_prognostic_index","death_from_cancer", "overall_survival", "overall_survival_months")
-outcome<- df[, colnames(df) %in% c("overall_survival", "overall_survival_months")]
-df_select<-df[, !colnames(df) %in% drop]
-
-#drop mutations in genes because too sparse 
-df_select<- df_select %>%
-  select(-ends_with("_mut"))
-
-#dims after dropping 
-dim(df_select)
-dim(outcome)
-```
-
-## 5.3 Multiple imupatation 
-
-Now that all missing are correctly coded, I first rank the features by numbers of missingness. I can see that the missing values are all on the clinical features. I use multiple imputation with chained equations depending on the type of the features. The data table below looks like there is no missingness. 
-
-The imputation process is muted here because I saved the imputed dataset to save time. But the code is shown here. 
-
-```{r}
-#rank by missing #
-missing<- data.frame(sapply(df_select, function(x) sum(is.na(x)))) %>% 
-  arrange(desc(sapply.df_select..function.x..sum.is.na.x...)) 
-head(missing, 15)
-```
-
-```{r, eval=FALSE}
-#convert all character features to factor for imputation
-df_select[sapply(df_select, is.character)] <- lapply(df_select[sapply(df_select, is.character)], 
-                                                           as.factor)
-#imputation (excluding the outcome features)
-set.seed(777)
-imp<- mice(df_select[, !colnames(df_select) %in% c("overall_survival_months","overall_survival")], m=3, method = "pmm")
-df_select_imp<- complete(imp)
-
-#add outcome back
-df_select_imp<- data.frame(df_select_imp, outcome)
-```
-
-```{r, eval=FALSE}
-#save this imputed data so that I don't have to run again 
-save(df_select_imp, file="./processed_data/df_select_imp.rda")
-```
-
-```{r}
 load("./processed_data/df_select_imp.rda")
 #check missing after imputation (ranked)
 missing<- data.frame(sapply(df_select_imp, function(x) sum(is.na(x)))) %>% 
   arrange(desc(sapply.df_select_imp..function.x..sum.is.na.x...))
 head(missing, 10)
-```
+
 
 ## 5.4 Feature selection based on correlation 
 
 I dropped one of a pair of features if the pair correlation is over 0.7. I ended up with 497 features now. 
 
-```{r}
 #correlation matrix of numeric features 
 num_cols<-select_if(df_select_imp, is.numeric)
 cor<- melt(round(x= cor(num_cols), digits = 2)) %>% 
   arrange(desc(abs(value))) %>% 
   filter(Var1!=Var2)
- 
+
 #remove |r|>0.7 
 big_cor<- cor %>% 
   filter(abs(value)>0.7)
@@ -200,14 +45,14 @@ There three main treatment types in this data, which are chemo, radiation, and h
 # chemotherapy, hormone_therapy, radio_therapy
 df_select_imp<- df_select_imp %>% 
   mutate(treatment= case_when(chemotherapy==1&hormone_therapy==1&radio_therapy==1 ~"all",
-                                 chemotherapy==1&hormone_therapy==1&radio_therapy==0 ~"che_hor",
-                                 chemotherapy==1&hormone_therapy==0&radio_therapy==1 ~"che_rad", 
-                                 chemotherapy==1&hormone_therapy==0&radio_therapy==0 ~"che", 
-                                 chemotherapy==0&hormone_therapy==1&radio_therapy==1 ~"hor_rad", 
-                                 chemotherapy==0&hormone_therapy==0&radio_therapy==1 ~"rad", 
-                                 chemotherapy==0&hormone_therapy==1&radio_therapy==0 ~ "hor", 
-                                 chemotherapy==0&hormone_therapy==0&radio_therapy==0 ~"none"
-                                 )) %>% 
+                              chemotherapy==1&hormone_therapy==1&radio_therapy==0 ~"che_hor",
+                              chemotherapy==1&hormone_therapy==0&radio_therapy==1 ~"che_rad", 
+                              chemotherapy==1&hormone_therapy==0&radio_therapy==0 ~"che", 
+                              chemotherapy==0&hormone_therapy==1&radio_therapy==1 ~"hor_rad", 
+                              chemotherapy==0&hormone_therapy==0&radio_therapy==1 ~"rad", 
+                              chemotherapy==0&hormone_therapy==1&radio_therapy==0 ~ "hor", 
+                              chemotherapy==0&hormone_therapy==0&radio_therapy==0 ~"none"
+  )) %>% 
   filter(treatment %in% c("hor", "hor_rad", "rad")) %>% 
   mutate(treatment= factor(treatment, levels= c("hor_rad", "hor", "rad"))) %>% 
   select(-chemotherapy, -hormone_therapy, -radio_therapy) %>% 
@@ -221,8 +66,8 @@ table(df_select_imp$treatment)
 # 6. Model training and evaluation 
 
 I generally followed the following steps: 
-
-- Explore survival curves of patients who had different treatment 
+  
+  - Explore survival curves of patients who had different treatment 
 - Fit different models using the afromentioned algorithms and parameters tuning for patients of each of the 3 types of treatment 
 - Evaluate the 10-fold cross-validated C-index
 - Repeat the last two steps using the full data set of all patients who have had hormone and/or radiation therapy
@@ -240,7 +85,7 @@ ggsurvplot(cox1, data= df_select_imp,
            xlab= "Months since study entry",
            legend.labs=c("Hormone + Radiation Therapy", "Only Hormone Therapy", "Only Radation Therapy"),
            pval=T, conf.int = T, risk.table = T, tables.height = 0.2, tables.theme = theme_cleantable(), ggtheme=theme_bw(),
-          )
+)
 ```
 
 ```{r}
@@ -298,7 +143,7 @@ for (v in 1:V){
                        type="link")
   df_test<- data.frame(test_y, test_x)
   eval1[v,2]<- concordance(Surv(time, status)~ pred_lasso, 
-                          data= df_test, reverse = TRUE)$concordance
+                           data= df_test, reverse = TRUE)$concordance
 }
 
 #ridge
@@ -317,7 +162,7 @@ for (v in 1:V){
                        type="link")
   df_test<- data.frame(test_y, test_x)
   eval1[v,3]<- concordance(Surv(time, status)~ pred_lasso, 
-                          data= df_test, reverse = TRUE)$concordance
+                           data= df_test, reverse = TRUE)$concordance
 }
 
 #el
@@ -336,7 +181,7 @@ for (v in 1:V){
                        type="link")
   df_test<- data.frame(test_y, test_x)
   eval1[v,4]<- concordance(Surv(time, status)~ pred_lasso, 
-                          data= df_test, reverse = TRUE)$concordance
+                           data= df_test, reverse = TRUE)$concordance
 }
 ```
 
@@ -398,7 +243,7 @@ for (v in 1:V){
                        type="link")
   df_test<- data.frame(test_y, test_x)
   eval2[v,2]<- concordance(Surv(time, status)~ pred_lasso, 
-                          data= df_test, reverse = TRUE)$concordance
+                           data= df_test, reverse = TRUE)$concordance
 }
 
 #ridge
@@ -417,7 +262,7 @@ for (v in 1:V){
                        type="link")
   df_test<- data.frame(test_y, test_x)
   eval2[v,3]<- concordance(Surv(time, status)~ pred_lasso, 
-                          data= df_test, reverse = TRUE)$concordance
+                           data= df_test, reverse = TRUE)$concordance
 }
 
 #el
@@ -436,7 +281,7 @@ for (v in 1:V){
                        type="link")
   df_test<- data.frame(test_y, test_x)
   eval2[v,4]<- concordance(Surv(time, status)~ pred_lasso, 
-                          data= df_test, reverse = TRUE)$concordance
+                           data= df_test, reverse = TRUE)$concordance
 }
 ```
 
@@ -497,7 +342,7 @@ for (v in 1:V){
                        type="link")
   df_test<- data.frame(test_y, test_x)
   eval3[v,2]<- concordance(Surv(time, status)~ pred_lasso, 
-                          data= df_test, reverse = TRUE)$concordance
+                           data= df_test, reverse = TRUE)$concordance
 }
 
 #ridge
@@ -517,7 +362,7 @@ for (v in 1:V){
                        type="link")
   df_test<- data.frame(test_y, test_x)
   eval3[v,3]<- concordance(Surv(time, status)~ pred_lasso, 
-                          data= df_test, reverse = TRUE)$concordance
+                           data= df_test, reverse = TRUE)$concordance
 }
 
 #el
@@ -537,7 +382,7 @@ for (v in 1:V){
                        type="link")
   df_test<- data.frame(test_y, test_x)
   eval3[v,4]<- concordance(Surv(time, status)~ pred_lasso, 
-                          data= df_test, reverse = TRUE)$concordance
+                           data= df_test, reverse = TRUE)$concordance
 }
 
 #rf
@@ -594,7 +439,7 @@ for (v in 1:V){
                        type="link")
   df_test<- data.frame(test_y, test_x)
   eval_all[v,2]<- concordance(Surv(time, status)~ pred_lasso, 
-                          data= df_test, reverse = TRUE)$concordance
+                              data= df_test, reverse = TRUE)$concordance
 }
 
 #ridge
@@ -613,7 +458,7 @@ for (v in 1:V){
                        type="link")
   df_test<- data.frame(test_y, test_x)
   eval_all[v,3]<- concordance(Surv(time, status)~ pred_lasso, 
-                          data= df_test, reverse = TRUE)$concordance
+                              data= df_test, reverse = TRUE)$concordance
 }
 
 #el
@@ -632,7 +477,7 @@ for (v in 1:V){
                        type="link")
   df_test<- data.frame(test_y, test_x)
   eval_all[v,4]<- concordance(Surv(time, status)~ pred_lasso, 
-                          data= df_test, reverse = TRUE)$concordance
+                              data= df_test, reverse = TRUE)$concordance
 }
 ```
 
@@ -672,7 +517,7 @@ summary(eval_all)
 ```{r}
 set.seed(500)
 rf_1<- rfsrc(Surv(time, status)~., data= df_select_imp, ntree=500, 
-                  samptype = "swr", importance=TRUE)
+             samptype = "swr", importance=TRUE)
 jk.obj<- subsample(rf_1)#default B=100 #of bootstrap
 plot(jk.obj, xlab = "Variable Importance*100")
 ```
@@ -687,11 +532,11 @@ num_cols<-select_if(rf_1$xvar, is.numeric)
 fac_cols<- select_if(rf_1$xvar, is.factor)
 new_num<- data.frame(lapply(1:ncol(num_cols), function(i){
   median(num_cols[,i])
-  }))
+}))
 colnames(new_num)<- colnames(num_cols)
 new_fac<- data.frame(lapply(1:ncol(fac_cols), function(i){
   which.max(table(fac_cols[,i]))
-    }))
+}))
 colnames(new_fac)<- colnames(fac_cols)
 new<- cbind(new_num, new_fac)
 new1<- new2<- new3<- new
@@ -707,9 +552,9 @@ y.pred<- predict(rf_1, newdata = new_df)
 ```{r}
 #plot survival estimates for the 3 patients 
 plot_df<- data.frame(time= as.vector(y.pred$time.interest),
-           new1=as.vector(y.pred$survival[1,]),
-           new2=as.vector(y.pred$survival[2,]), 
-           new3=as.vector(y.pred$survival[1,]))
+                     new1=as.vector(y.pred$survival[1,]),
+                     new2=as.vector(y.pred$survival[2,]), 
+                     new3=as.vector(y.pred$survival[1,]))
 plot_df %>% 
   ggplot(aes(x=time))+
   geom_line(aes(y=new1,colour= "hormone+radiation"), alpha=0.6,size=1.2)+
@@ -734,10 +579,3 @@ A major limitation of the study is the small number of observation relative to t
 Because of limited data, this initial development needs further **implementation** steps to improve accuracy and reliability. One of the steps is to make sure that new clinical, mRNA and mutation data are measured in a standard way compared to the current data collection plan. As new patient data increase, it is ideal to expand this to patients who receive other types of treatment and combos (e.g., chemotherapy). We also need to constantly monitor the patterns of key features, missing values, and predictive performance over time. Specifically, tumor stage is a feature that has a lot of missing values. Further steps should takend to examine why this information is missing and how to improve. 
 
 For the purpose of the predictors are to assist clinical decision making, I expect the audience to be practitioners in clinical settings or patients themselves. So, I think visualizing patients estimation of survival probability over time like I did above would be useful. I also think the eventual predictor should be able to automatically receive lab data (e.g., mRNA and mutation) for patient. It should also be an interactive tool where people can input and change fields if needed. However, it needs to be experimented whether imperfect predictions of one's lifespan would be beneficial or harmful overall.  
-
-```{r}
-```
-
-
-
-
