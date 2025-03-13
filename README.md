@@ -24,7 +24,7 @@ Based on the results, ridge predictor had the best performance in the predictor 
 
 ### Feature importance plot of the random survival forest predictor among all patients
 
-<img src="plots/VIMPsur.png" width="800">
+<img src="plots/VIMPsur.png" width="600">
 
 # Conclusion
 
