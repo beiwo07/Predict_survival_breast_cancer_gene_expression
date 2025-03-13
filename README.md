@@ -36,7 +36,7 @@ Due to limited data, further development is needed to enhance the accuracy and r
 
 ## ** View the full report  
 
-- [View the full R script and report (Data Preprocessing & Analysis)](project_script.md)
+- [View the full R script and report (Data Preprocessing & Analysis)](r_scripts/full_project_script.md)
 
 
 
