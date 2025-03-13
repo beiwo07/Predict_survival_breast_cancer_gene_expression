@@ -1,4 +1,6 @@
-# Predicting Survival of Breast Cancer Patients Who Received Hormone and/or Radiation Therapy Incoporating High-dimensional Gene Expression Information
+# Predicting Survival of Breast Cancer Patients Who Received Hormone and/or Radiation Therapy Incoporating High-dimensional Gene Expression Information 
+
+Bei Wang, 2022
 
 # Importance 
 
@@ -23,4 +25,16 @@ Based on the results, ridge predictor had the best performance in the predictor 
 ### Feature importance plot of the random survival forest predictor among all patients
 
 <img src="plots/VIMPsur.png" width="800">
+
+# Conclusion
+
+To summarize, I created predictors for survival among breast cancer patients who received different combos of hormone and radiation therapy. Because of the high dimension of the data that involves hundreds of gene expression features, I prioritize the predictive ability over interpretability (e.g., risk factors). The performance of these predictors are averagely in the range of 0.65-0.7, which is not excellent. However, the regularized cox hazard proportional models and the random survival forest all outperformed the traditional Cox proportional model by a lot, indicating of the potential of more accurate predictors with more observations. A major limitation of the study is the small number of observations relative to the number of features. Another limitation is that the time-to-event measurement do not start from a coherent time point (e.g., time of diagnosis of breast cancer), which makes it harder to interpret the results in terms of how to apply it to practice. 
+
+# Recommendation
+
+Due to limited data, further development is needed to enhance the accuracy and reliability of this model. One key step is ensuring that new clinical, mRNA, and mutation data are collected in a standardized manner, aligning with the current data collection plan. As more patient data become available, expanding the model to include individuals receiving other treatments, such as chemotherapy, would be beneficial. Additionally, continuous monitoring of key feature patterns, missing values, and predictive performance is essential. In particular, tumor stage has a high proportion of missing values, warranting further investigation into the reasons behind this gap and potential solutions for improvement. Given that the model aims to support clinical decision-making, the primary audience includes healthcare practitioners and potentially patients. Therefore, visualizing individual survival probability estimates over time, as demonstrated in this analysis, could be a valuable tool for interpretation and decision support.
+
+
+
+
 
