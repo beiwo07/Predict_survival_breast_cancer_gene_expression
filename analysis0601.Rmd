@@ -45,7 +45,7 @@ library(magrittr)
 
 ```{r, read data}
 #original dataset dimension
-df<- read.csv(".raw_data/METABRIC_RNA_Mutation 2.csv") 
+df<- read.csv("raw_data/METABRIC_RNA_Mutation 2.csv") 
 dim(df)
 ```
 
@@ -160,7 +160,7 @@ df_select_imp<- data.frame(df_select_imp, outcome)
 
 ```{r, eval=FALSE}
 #save this imputed data so that I don't have to run again 
-save(df_select_imp, file="./processed_data/df_select_imp.rda")
+save(df_select_imp, file="/processed_data/df_select_imp.rda")
 ```
 
 ```{r}
