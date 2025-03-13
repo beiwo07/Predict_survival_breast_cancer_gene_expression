@@ -31,3 +31,23 @@ To summarize, I created predictors for survival among breast cancer patients who
 # Recommendation
 
 Due to limited data, further development is needed to enhance the accuracy and reliability of this model. One key step is ensuring that new clinical, mRNA, and mutation data are collected in a standardized manner, aligning with the current data collection plan. As more patient data become available, expanding the model to include individuals receiving other treatments, such as chemotherapy, would be beneficial. Additionally, continuous monitoring of key feature patterns, missing values, and predictive performance is essential. In particular, tumor stage has a high proportion of missing values, warranting further investigation into the reasons behind this gap and potential solutions for improvement. Given that the model aims to support clinical decision-making, the primary audience includes healthcare practitioners and potentially patients. Therefore, visualizing individual survival probability estimates over time, as demonstrated in this analysis, could be a valuable tool for interpretation and decision support.
+
+## **This repo is organized as follow: **  
+
+├── analysis0601.Rmd       # R Markdown file for data analysis and reporting
+├── raw_data/                  # Folder containing raw
+├── processed_data/         # Folder processed data
+│   ├── METABRIC_RNA_Mutation_2.csv  # Example dataset
+│   ├── processed_data.csv  # Preprocessed or cleaned data
+│   └── metadata.txt        # Information about dataset variables
+├── plots/                 # Folder containing generated plots and visualizations
+│   ├── VIMPsur.png        # Example plot image
+│   ├── survival_curves.pdf # Survival probability estimates
+├── scripts/               # Folder for R scripts used in analysis
+│   ├── preprocessing.R    # Data cleaning and preprocessing steps
+│   ├── model_training.R   # Model fitting and evaluation
+│   ├── visualization.R    # Script for generating plots
+├── README.md              # Documentation of the project
+├── requirements.txt       # Dependencies for reproducing the analysis
+└── .gitignore             # Files and folders to be ignored in version control
+
