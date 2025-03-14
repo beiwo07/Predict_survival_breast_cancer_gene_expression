@@ -1036,42 +1036,8 @@ plot_df %>%
 
 ![](analysis0601_files/figure-markdown_github/unnamed-chunk-30-1.png)
 
-# 7. Conclusion
+# 7. Conclusion and recommendation
 
-To summarize, I created predictors for survival among breast cancer
-patients who received different combos of hormone and radiation therapy.
-Because of the high dimension of the data that involves hundreds of gene
-expression features, I prioritize the predictive ability over
-interpretability (e.g., risk factors). The performance of these
-predictors are averagely in the range of 0.65-0.7, which is not
-excellent. However, the regularized cox hazard proportional models and
-the random survival forest all outperformed the traditional cox
-proportional model by a lot, indicating of the potential of more
-accurate predictors with more observations.
+To summarize, I created predictors for survival among breast cancer patients who received different combos of hormone and radiation therapy. Because of the high dimension of the data that involves hundreds of gene expression features, I prioritize the predictive ability over interpretability (e.g., risk factors). The performance of these predictors are averagely in the range of 0.65-0.7, which is not excellent. However, the regularized cox hazard proportional models and the random survival forest all outperformed the traditional Cox proportional model by a lot, indicating of the potential of more accurate predictors with more observations. A major limitation of the study is the small number of observations relative to the number of features. Another limitation is that the time-to-event measurement do not start from a coherent time point (e.g., time of diagnosis of breast cancer), which makes it harder to interpret the results in terms of how to apply it to practice.
 
-A major limitation of the study is the small number of observation
-relative to the number of features. Another limitation is that the
-time-to-event measurement seems do not start from a coherent time point
-(e.g.,time of diagnosis of breast cancer), which makes it harder to
-interpret the results in terms of how to apply it to practice.
-
-Because of limited data, this initial development needs further
-**implementation** steps to improve accuracy and reliability. One of the
-steps is to make sure that new clinical, mRNA and mutation data are
-measured in a standard way compared to the current data collection plan.
-As new patient data increase, it is ideal to expand this to patients who
-receive other types of treatment and combos (e.g., chemotherapy). We
-also need to constantly monitor the patterns of key features, missing
-values, and predictive performance over time. Specifically, tumor stage
-is a feature that has a lot of missing values. Further steps should
-takend to examine why this information is missing and how to improve.
-
-For the purpose of the predictors are to assist clinical decision
-making, I expect the audience to be practitioners in clinical settings
-or patients themselves. So, I think visualizing patients estimation of
-survival probability over time like I did above would be useful. I also
-think the eventual predictor should be able to automatically receive lab
-data (e.g., mRNA and mutation) for patient. It should also be an
-interactive tool where people can input and change fields if needed.
-However, it needs to be experimented whether imperfect predictions of
-one’s lifespan would be beneficial or harmful overall.
+Due to limited data, further development is needed to enhance the accuracy and reliability of this model. One key step is ensuring that new clinical, mRNA, and mutation data are collected in a standardized manner, aligning with the current data collection plan. As more patient data become available, expanding the model to include individuals receiving other treatments, such as chemotherapy, would be beneficial. Additionally, continuous monitoring of key feature patterns, missing values, and predictive performance is essential. In particular, tumor stage has a high proportion of missing values, warranting further investigation into the reasons behind this gap and potential solutions for improvement. Given that the model aims to support clinical decision-making, the primary audience includes healthcare practitioners and potentially patients. Therefore, visualizing individual survival probability estimates over time, as demonstrated in this analysis, could be a valuable tool for interpretation and decision support.
