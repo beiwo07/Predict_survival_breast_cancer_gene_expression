@@ -38,30 +38,23 @@ Due to limited data, further development is needed to enhance the accuracy and r
 
 - [View the full R script and report (Data Preprocessing & Analysis)](report_final.pdf)
 
+## Project organization
+
+```
 .
-├── Images/                             : contains images
-├── static/                             : plots to show gauge chart, hazard and survival curve, shap values in Flask App 
-│   └── images/
-│       ├── hazard.png
-│       ├── surv.png
-│       ├── shap.png
-│       └── new_plot.png
-├── templates/                          : contains html template for flask app
-│   └── index.html
-├── Customer Survival Analysis.ipynb    : Survival Analysis kaplan-Meier curve, log-rank test and Cox-proportional Hazard model
-├── Exploratory Data Analysis.ipynb     : Data Analysis to understand customer data
-├── Churn Prediction Model.ipynb        : Random Forest model to predict customer churn
-├── app.py                              : Flask App
-├── app-pic.png                         : Final App image  
-├── explainer.bz2                       : Shap Explainer
-├── model.pkl                           : Random Forest model
-├── survivemodel.pkl                    : Cox-proportional Hazard model
-├── requirements.txt                    : requirements to run this model
-├── Procfile                            : procfile for app deployment
-├── LICENSE.md                          : MIT License
-└── README.md                           : Report
+├── Plots/                             : contains images
+├── raw_data/                          : contains raw data downloaded from the data source 
+│   └── METABRIC_RNA_Mutation 2csv
+├── processed_data/                    : contains processed data 
+│   └── df_select_imp.rda
+├── r_scripts/                         : contains full and step-by-step scripts 
+│   └── 1_data_prep.Rmd
+    ├── 2_analysis.Rmd 
+    ├── full_project_script.Rmd
+├── report_final.pdf                   : contains a final report 
+└── renv.lock                          : contains information required to recreate the project 
 
-
+```
 
 
 
