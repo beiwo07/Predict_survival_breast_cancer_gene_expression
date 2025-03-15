@@ -38,7 +38,23 @@ Due to limited data, further development is needed to enhance the accuracy and r
 
 - [View the full R script and report (Data Preprocessing & Analysis)](report_final.pdf)
 
+## Project organization
 
+```
+.
+├── Plots/                             : contains images
+├── raw_data/                          : contains raw data downloaded from the data source 
+│   └── METABRIC_RNA_Mutation 2csv
+├── processed_data/                    : contains processed data 
+│   └── df_select_imp.rda
+├── r_scripts/                         : contains full and step-by-step scripts 
+│   └── 1_data_prep.Rmd
+    ├── 2_analysis.Rmd 
+    ├── full_project_script.Rmd
+├── report_final.pdf                   : contains a final report 
+└── renv.lock                          : contains information required to recreate the project 
+
+```
 
 
 
